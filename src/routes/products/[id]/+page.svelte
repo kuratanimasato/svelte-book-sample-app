@@ -3,24 +3,35 @@
 <script>
     import {afterNavigate} from '$app/navigation';
     import Slider from './Slider.svelte';
-    let {data}=$props();
+      let {data}=$props();
 
-    let product =$derived(data?.product);
-    let relatedProducts =$derived(data?.relatedProducts);
-    let cart =$derived(data?.cart);
+      let product =$derived(data?.product);
+      let relatedProducts =$derived(data?.relatedProducts);
+      let cart =$derived(data?.cart);
 
-    let recommendRequest =$state(new Promise(()=>{}));
-
-    afterNavigate(()=>{
-        recommendRequest =fetch(`/api/recommend?id=${product.id}`).then(res=>res.json());
-    });
+      let recommendRequest =$state(new Promise(()=>{}));
+      let userRequest =$state(new Promise(()=>{}));
+      
+      afterNavigate(()=>{
+          recommendRequest =fetch(`/api/recommend?id=${product.id}`).then(res=>res.json());
+          userRequest =fetch(`/api/self`).then(res=>res.json());
+      
+      });
 
   </script>
   <header class="header">
     <a href="/" class="header-title">SvelteEC</a>
     <nav>
         <ul class="header-links">
-            <li>ようこそゲストさん</li>
+            <li>ようこそ
+            {#await userRequest then user}
+              {#if user}
+                {user.email}さん <a href="/logout">ログアウト</a>
+              {:else}
+                ゲストさん <a href="/login">ログイン</a>
+              {/if}
+            {/await}
+            </li>
             <li>
                 <a href="/cart">カート(0)</a>
             </li>
@@ -42,7 +53,13 @@
           {#if !cart.includes(product.id)}
             <form method="POST">
               <input type="hidden" name="productId" value={product.id}>
+              {#await userRequest}
               <button type="submit">カートに入れる</button>
+              {:then user}
+              {#if !user}
+              <p>カートを使うには<a href="/login">ログイン</a>してください</p>
+              {/if}
+              {/await}
             </form>
             {:else}
             <button disabled>カート追加済み</button>
